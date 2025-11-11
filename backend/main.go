@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -60,7 +61,7 @@ func main() {
 		fmt.Printf("First 5 stocks: %v\n", stocks)
 	}
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, you've requested: %s\n", r.URL.Path)
+		json.NewEncoder(w).Encode(stocks)
 	})
 
 	http.ListenAndServe(":3000", nil)
