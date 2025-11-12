@@ -34,6 +34,16 @@ const formatColombianDateTime = (isoString: string): string => {
   });
 };
 
+const getSortChar = (label: string) => {
+  if (label === sortby.value) {
+    if (sortorder.value) {
+      return "^"
+    }
+    return "v"
+  }
+  return "-"
+}
+
 const onClickSort = async (label: string) => {
   const column = columnTitles.find(col => col.label === label);
   if (!column) return;
@@ -106,7 +116,7 @@ onMounted(async () => {
             <tr>
               <th @click="() => onClickSort(column.label)" v-for="column in columnTitles" :key="column.label"
                 :class="thClass">
-                <span>{{ column.display }}</span><button :class="sortBtnClass">-</button>
+                <span>{{ column.display }}</span><button :class="sortBtnClass">{{ getSortChar(column.label) }}</button>
               </th>
             </tr>
           </thead>
