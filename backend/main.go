@@ -107,6 +107,21 @@ func queryStocks(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	json.NewEncoder(w).Encode(stocks)
 }
 
+func recommendStock(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+	var stocks []domain.Stock
+	result := db.Limit(1).Find(&stocks)
+	if result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(stocks) != 1 {
+		http.Error(w, fmt.Sprintf("expected 1 stock, got %d", len(stocks)), http.StatusNotFound)
+		return
+	}
+	json.NewEncoder(w).Encode(stocks[0])
+}
+
 func main() {
 	db := initDb()
 	cors := handlers.CORS(
@@ -115,8 +130,12 @@ func main() {
 		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
 	)
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/stocks", func(w http.ResponseWriter, r *http.Request) {
 		queryStocks(w, r, db)
+	})
+
+	mux.HandleFunc("/recommendation", func(w http.ResponseWriter, r *http.Request) {
+		recommendStock(w, r, db)
 	})
 
 	http.ListenAndServe(":3000", cors(mux))
