@@ -9,6 +9,7 @@ import (
 
 	"stocks/domain"
 
+	"github.com/gorilla/handlers"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -60,9 +61,15 @@ func main() {
 	} else {
 		fmt.Printf("First 5 stocks: %v\n", stocks)
 	}
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	cors := handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+	)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(stocks)
 	})
 
-	http.ListenAndServe(":3000", nil)
+	http.ListenAndServe(":3000", cors(mux))
 }
