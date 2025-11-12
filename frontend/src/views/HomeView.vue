@@ -71,6 +71,14 @@ function getDelta(from: number, to: number): string {
   return percentage.toFixed(1) + '%';
 }
 
+function compareDecimals(from: any, to: any): number {
+  const fromN = parseFloat(from);
+  const toN = parseFloat(to);
+  if (toN > fromN) return 1
+  else if (toN < fromN) return -1
+  else return 0
+}
+
 const onSearch = async () => {
   const queryVal = query.value || ""
   console.debug(`Searching for ${queryVal}`);
@@ -169,12 +177,12 @@ onMounted(async () => {
             <tr v-for="stock in stocks" :key="stock.Id" class="border-b hover:bg-gray-50">
               <td class="px-6 py-4">{{ stock.Ticker }}</td>
               <td class="px-6 py-4">
-                <span v-if="stock.TargetTo > stock.TargetFrom" class="text-green-500 whitespace-nowrap">▲ {{ getDelta(stock.TargetFrom, stock.TargetTo) }}</span>
-                <span v-else-if="stock.TargetTo < stock.TargetFrom" class="text-red-500 whitespace-nowrap">▼ {{ getDelta(stock.TargetFrom, stock.TargetTo) }}</span>
+                <span v-if="compareDecimals(stock.TargetFrom, stock.TargetTo) === 1" class="text-green-500 whitespace-nowrap">▲ {{ getDelta(stock.TargetFrom, stock.TargetTo) }}</span>
+                <span v-else-if="compareDecimals(stock.TargetFrom, stock.TargetTo) === -1" class="text-red-500 whitespace-nowrap">▼ {{ getDelta(stock.TargetFrom, stock.TargetTo) }}</span>
                 <span v-else class="text-blue-500 whitespace-nowrap">━ {{ getDelta(stock.TargetFrom, stock.TargetTo) }}</span>
               </td>
-              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetFrom) }}</td>
-              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetTo) }}</td>
+              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetFrom)}}</td>
+              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetTo) + ' ' + stock.TargetTo}}</td>
               <td class="px-6 py-4">{{ stock.Company }}</td>
               <td class="px-6 py-4">{{ stock.Action }}</td>
               <td class="px-6 py-4">{{ stock.Brokerage }}</td>
