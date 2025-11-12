@@ -52,8 +52,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="min-h-[calc(100vh-5rem)] bg-gradient-to-br from-white to-[#81A5F7] flex justify-center pt-12 px-8">
-    <div class="w-full max-w-7xl">
+  <main class="min-h-[calc(100vh-5rem)] bg-gradient-to-br from-white to-[#81A5F7] pt-12 px-8 pb-12 overflow-x-auto">
+    <div class="w-full max-w-7xl min-w-max mx-auto">
       <div class="flex items-center justify-between mb-4">
         <div class="flex gap-2">
           <button @click="onClickPrev"
@@ -67,7 +67,7 @@ onMounted(async () => {
           class="px-4 py-2 border-2 border-[#3B1CEA] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3B1CEA] shadow-md"
           placeholder="Search...">
       </div>
-      <table class="w-full bg-white shadow-lg rounded-lg overflow-hidden">
+      <table class="w-full bg-white shadow-lg rounded-lg overflow-hidden mb-8">
         <thead class="bg-[#3B1CEA] text-white">
           <tr>
             <th class="px-6 py-4 text-left font-semibold">Ticker</th>
