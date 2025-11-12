@@ -20,7 +20,10 @@ const formatColombianDateTime = (isoString: string): string => {
 
 onMounted(async () => {
   try {
-    const response = await fetch(apiUrl);
+    const params = new URLSearchParams({
+      offset: '100'
+    })
+    const response = await fetch(`${apiUrl}?${params}`);
     const data = await response.json();
     console.debug(data);
     stocks.value = data;

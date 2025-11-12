@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"stocks/domain"
 
@@ -47,20 +48,35 @@ func initDb() *gorm.DB {
 	return db
 }
 
-func getFirstStocks(db *gorm.DB) ([]domain.Stock, error) {
+func getFirstStocks(db *gorm.DB, offset int) ([]domain.Stock, error) {
 	var stocks []domain.Stock
-	result := db.Limit(5).Find(&stocks)
+	result := db.Limit(5).Order("ticker ASC").Offset(offset).Find(&stocks)
 	return stocks, result.Error
 }
 
-func main() {
-	db := initDb()
-	stocks, err := getFirstStocks(db)
+func queryStocks(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+	q := r.URL.Query()
+	offsetStr := q.Get("offset")
+	offset := 0
+	if len(offsetStr) > 0 {
+		var err error
+		offset, err = strconv.Atoi(offsetStr)
+		if err != nil {
+			fmt.Println("Invalid offset:", err)
+			offset = 0
+		}
+	}
+	stocks, err := getFirstStocks(db, offset)
 	if err != nil {
 		log.Fatalf("Error getting stocks %v", err)
 	} else {
 		fmt.Printf("First 5 stocks: %v\n", stocks)
 	}
+	json.NewEncoder(w).Encode(stocks)
+}
+
+func main() {
+	db := initDb()
 	cors := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
@@ -68,7 +84,7 @@ func main() {
 	)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(stocks)
+		queryStocks(w, r, db)
 	})
 
 	http.ListenAndServe(":3000", cors(mux))
