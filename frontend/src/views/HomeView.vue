@@ -123,7 +123,7 @@ async function updateStocks(offset: number = 0, sortBy: string | null = null, so
       asc: sortOrder ? 'true' : 'false',
       query: queryStr
     });
-    const response = await fetch(`${apiUrl}?${params}`);
+    const response = await fetch(`${apiUrl}/stocks?${params}`);
     const data = await response.json();
     console.debug(data);
     return data;
@@ -136,7 +136,12 @@ async function updateStocks(offset: number = 0, sortBy: string | null = null, so
   } catch (error) {
     console.error('Error fetching stocks: ', error);
   }
+}
 
+async function getRecommendation() {
+  const response = await fetch(`${apiUrl}/recommendation`);
+  const data = await response.json() as Stock;
+  console.debug("Obtained recommendation: ", data);
 }
 
 onMounted(async () => {
@@ -157,6 +162,7 @@ onMounted(async () => {
           <span>Page {{ page }}</span>
         </div>
         <div class="flex gap-2 items-center">
+          <button @click="getRecommendation" :class="topBtnClass"> ★ Get recommendation ★</button>
           <input v-model="query"
             class="px-4 py-2 border-2 border-[#3B1CEA] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3B1CEA] shadow-md"
             placeholder="Search by ticker...">
@@ -182,7 +188,7 @@ onMounted(async () => {
                 <span v-else class="text-blue-500 whitespace-nowrap">━ {{ getDelta(stock.TargetFrom, stock.TargetTo) }}</span>
               </td>
               <td class="px-6 py-4">{{ formatAsMoney(stock.TargetFrom)}}</td>
-              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetTo) + ' ' + stock.TargetTo}}</td>
+              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetTo)}}</td>
               <td class="px-6 py-4">{{ stock.Company }}</td>
               <td class="px-6 py-4">{{ stock.Action }}</td>
               <td class="px-6 py-4">{{ stock.Brokerage }}</td>
