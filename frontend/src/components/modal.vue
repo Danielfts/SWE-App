@@ -12,9 +12,9 @@ const close = () => emit('update:modelValue', false)
 <template>
     <div v-if="modelValue" @click.self="close" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <h1 style="font-size: xx-large; font-weight: bold;">Recommended Stock of the day</h1>
-            <br>
-            <div v-for="k in Object.keys(stock)" style="display: grid; grid-template-columns: 50% 50%;">
+            <h1 class="text-4xl font-bold">Recommended Stock of the day</h1>
+            <div class="mb-4"></div>
+            <div v-for="k in Object.keys(stock)" class="grid grid-cols-2">
                 <strong>{{ k }}</strong>
                 <span>{{ stock[k] }}</span>
             </div>

@@ -2,6 +2,7 @@
 import type { Stock } from '@/domain/stock';
 import { ref, onMounted } from 'vue';
 import ModalComponent from '../components/modal.vue'
+import { formatColombianDateTime, formatAsMoney, compareDecimals, getDelta, getSortChar } from '@/utils/format-utils';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 const stocks = ref<Stock[]>([]);
@@ -27,61 +28,6 @@ const columnTitles = [
   { display: 'Rating To', label: 'RatingTo', sortable: true },
   { display: 'Time', label: 'Time', sortable: true }
 ] as const;
-
-const formatColombianDateTime = (isoString: string): string => {
-  const date = new Date(isoString);
-  return date.toLocaleString('es-CO', {
-    timeZone: 'America/Bogota',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-};
-
-const getSortChar = (label: string) => {
-  if (label === sortby.value) {
-    if (sortorder.value) {
-      return "^"
-    }
-    return "v"
-  }
-  return "-"
-}
-
-function formatAsMoney(value: number) {
-  let newStr = "";
-  const [intPart, decPart] = value.toString().split(".")
-  const oldStr = intPart!.toString().split("").reverse();
-  let counter = 0;
-  for (let i = 0; i < oldStr.length; i++) {
-    const ch = oldStr[i]
-    newStr = ch + newStr
-    counter++;
-    if (counter === 3 && i < oldStr.length - 1) {
-      newStr = ',' + newStr;
-      counter = 0;
-    }
-  }
-  newStr = "$" + newStr + '.' + decPart;
-  return newStr;
-}
-
-function getDelta(from: number, to: number): string {
-  const percentage = ((to - from) / from) * 100;
-  return percentage.toFixed(1) + '%';
-}
-
-function compareDecimals(from: any, to: any): number {
-  const fromN = parseFloat(from);
-  const toN = parseFloat(to);
-  if (toN > fromN) return 1
-  else if (toN < fromN) return -1
-  else return 0
-}
 
 const onSearch = async () => {
   const queryVal = query.value || ""
@@ -184,7 +130,7 @@ onMounted(async () => {
             <tr>
               <th v-for="column in columnTitles" :key="column.label" :class="thClass">
                 <span>{{ column.display }}</span><button v-if="column.sortable" @click="() => onClickSort(column.label)"
-                  :class="sortBtnClass">{{ getSortChar(column.label) }}</button>
+                  :class="sortBtnClass">{{ getSortChar(column.label, sortby, sortorder) }}</button>
               </th>
             </tr>
           </thead>
@@ -192,12 +138,15 @@ onMounted(async () => {
             <tr v-for="stock in stocks" :key="stock.Id" class="border-b hover:bg-gray-50">
               <td class="px-6 py-4">{{ stock.Ticker }}</td>
               <td class="px-6 py-4">
-                <span v-if="compareDecimals(stock.TargetFrom, stock.TargetTo) === 1" class="text-green-500 whitespace-nowrap">▲ {{ getDelta(stock.TargetFrom, stock.TargetTo) }}</span>
-                <span v-else-if="compareDecimals(stock.TargetFrom, stock.TargetTo) === -1" class="text-red-500 whitespace-nowrap">▼ {{ getDelta(stock.TargetFrom, stock.TargetTo) }}</span>
-                <span v-else class="text-blue-500 whitespace-nowrap">━ {{ getDelta(stock.TargetFrom, stock.TargetTo) }}</span>
+                <span v-if="compareDecimals(stock.TargetFrom, stock.TargetTo) === 1"
+                  class="text-green-500 whitespace-nowrap">▲ {{ getDelta(stock.TargetFrom, stock.TargetTo) }}</span>
+                <span v-else-if="compareDecimals(stock.TargetFrom, stock.TargetTo) === -1"
+                  class="text-red-500 whitespace-nowrap">▼ {{ getDelta(stock.TargetFrom, stock.TargetTo) }}</span>
+                <span v-else class="text-blue-500 whitespace-nowrap">━ {{ getDelta(stock.TargetFrom, stock.TargetTo)
+                  }}</span>
               </td>
-              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetFrom)}}</td>
-              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetTo)}}</td>
+              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetFrom) }}</td>
+              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetTo) }}</td>
               <td class="px-6 py-4">{{ stock.Company }}</td>
               <td class="px-6 py-4">{{ stock.Action }}</td>
               <td class="px-6 py-4">{{ stock.Brokerage }}</td>
@@ -210,5 +159,5 @@ onMounted(async () => {
       </div>
     </div>
   </main>
-  <modal-component v-model="isModalOpen" v-bind:stock="recommendedStock!"/>
+  <modal-component v-model="isModalOpen" v-bind:stock="recommendedStock!" />
 </template>
