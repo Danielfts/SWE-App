@@ -47,6 +47,24 @@ const getSortChar = (label: string) => {
   return "-"
 }
 
+function formatAsMoney(value: number) {
+  let newStr = "";
+  const [intPart, decPart] = value.toString().split(".")
+  const oldStr = intPart!.toString().split("").reverse();
+  let counter = 0;
+  for (let i = 0; i < oldStr.length; i++) {
+    const ch = oldStr[i]
+    newStr = ch + newStr
+    counter ++;
+    if (counter === 3 && i < oldStr.length - 1) {
+      newStr = ',' + newStr;
+      counter = 0;
+    }
+  }
+  newStr = "$" + newStr + '.'+ decPart;
+  return newStr;
+}
+
 const onSearch = async () => {
   const queryVal = query.value || ""
   console.debug(`Searching for ${queryVal}`);
@@ -125,8 +143,7 @@ onMounted(async () => {
           <span>Page {{ page }}</span>
         </div>
         <div class="flex gap-2 items-center">
-          <input
-            v-model="query"
+          <input v-model="query"
             class="px-4 py-2 border-2 border-[#3B1CEA] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3B1CEA] shadow-md"
             placeholder="Search by ticker...">
           <button @click="onSearch" :class="topBtnClass">Search</button>
@@ -145,8 +162,8 @@ onMounted(async () => {
           <tbody>
             <tr v-for="stock in stocks" :key="stock.Id" class="border-b hover:bg-gray-50">
               <td class="px-6 py-4">{{ stock.Ticker }}</td>
-              <td class="px-6 py-4">{{ stock.TargetFrom }}</td>
-              <td class="px-6 py-4">{{ stock.TargetTo }}</td>
+              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetFrom) }}</td>
+              <td class="px-6 py-4">{{ formatAsMoney(stock.TargetTo) }}</td>
               <td class="px-6 py-4">{{ stock.Company }}</td>
               <td class="px-6 py-4">{{ stock.Action }}</td>
               <td class="px-6 py-4">{{ stock.Brokerage }}</td>

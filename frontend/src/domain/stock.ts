@@ -1,8 +1,8 @@
 export interface Stock {
   Id: string;
   Ticker: string;
-  TargetFrom: string;
-  TargetTo: string;
+  TargetFrom: number;
+  TargetTo: number;
   Company: string;
   Action: string;
   Brokerage: string;
