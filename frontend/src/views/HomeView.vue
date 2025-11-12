@@ -6,8 +6,10 @@ const stocks = ref<Stock[]>([]);
 const page = ref<number>(0);
 const sortby = ref<string>("");
 const sortorder = ref<boolean>(true);
+const query = ref<string>("");
 const sortBtnClass = "ml-2 px-2 py-1 text-xs bg-white/20 hover:bg-white/30 rounded transition-colors";
 const thClass = "px-6 py-4 text-left font-semibold whitespace-nowrap";
+const topBtnClass = "px-4 py-2 bg-[#3B1CEA] text-white font-semibold rounded-lg hover:bg-[#2D15B8] transition-colors shadow-md";
 const columnTitles = [
   { display: 'Ticker', label: 'Ticker' },
   { display: 'Target From', label: 'TargetFrom' },
@@ -44,6 +46,12 @@ const getSortChar = (label: string) => {
   return "-"
 }
 
+const onSearch = async () => {
+  const queryVal = query.value || ""
+  console.debug(`Searching for ${queryVal}`);
+  queryStocks(page.value, sortby.value, sortorder.value, queryVal)
+}
+
 const onClickSort = async (label: string) => {
   const column = columnTitles.find(col => col.label === label);
   if (!column) return;
@@ -56,27 +64,28 @@ const onClickSort = async (label: string) => {
     sortorder.value = true
   }
   sortby.value = label;
-  await queryStocks(0, label, sortorder.value)
+  await queryStocks(0, label, sortorder.value, query.value)
 }
 
 const onClickPrev = async () => {
   if (page.value > 0) {
     page.value = page.value - 1;
-    queryStocks(page.value, sortby.value, sortorder.value);
+    queryStocks(page.value, sortby.value, sortorder.value, query.value);
   }
 }
 
 const onClickNext = async () => {
   page.value = page.value + 1;
-  queryStocks(page.value, sortby.value, sortorder.value);
+  queryStocks(page.value, sortby.value, sortorder.value, query.value);
 }
 
-async function queryStocks(offset: number = 0, sortBy: string | null = null, sortOrder: boolean = true) {
+async function queryStocks(offset: number = 0, sortBy: string | null = null, sortOrder: boolean = true, queryStr: string = "") {
   try {
     const params = new URLSearchParams({
       offset: offset.toString(),
       sortby: sortBy || "",
-      asc: sortOrder? 'true': 'false'
+      asc: sortOrder ? 'true' : 'false',
+      query: queryStr
     });
     const response = await fetch(`${apiUrl}?${params}`);
     const data = await response.json();
@@ -98,17 +107,19 @@ onMounted(async () => {
     <div class="w-full max-w-7xl mx-auto">
       <div class="flex items-center justify-between mb-4">
         <div class="flex gap-2 items-center">
-          <button @click="onClickPrev"
-            class="px-4 py-2 bg-[#3B1CEA] text-white font-semibold rounded-lg hover:bg-[#2D15B8] transition-colors shadow-md">
+          <button @click="onClickPrev" :class="topBtnClass">
             Prev</button>
-          <button @click="onClickNext"
-            class="px-4 py-2 bg-[#3B1CEA] text-white font-semibold rounded-lg hover:bg-[#2D15B8] transition-colors shadow-md">Next
+          <button @click="onClickNext" :class="topBtnClass">Next
           </button>
           <span>Page {{ page }}</span>
         </div>
-        <input
-          class="px-4 py-2 border-2 border-[#3B1CEA] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3B1CEA] shadow-md"
-          placeholder="Search...">
+        <div class="flex gap-2 items-center">
+          <input
+            v-model="query"
+            class="px-4 py-2 border-2 border-[#3B1CEA] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3B1CEA] shadow-md"
+            placeholder="Search by ticker...">
+          <button @click="onSearch" :class="topBtnClass">Search</button>
+        </div>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full bg-white shadow-lg rounded-lg overflow-hidden mb-8">
