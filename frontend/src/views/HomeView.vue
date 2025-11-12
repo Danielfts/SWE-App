@@ -11,6 +11,7 @@ const sortorder = ref<boolean>(true);
 const query = ref<string>("");
 const canContinue = ref<boolean>(false);
 const isModalOpen = ref<boolean>(false);
+const recommendedStock = ref<Stock | null>(null);
 const sortBtnClass = "ml-2 px-2 py-1 text-xs bg-white/20 hover:bg-white/30 rounded transition-colors";
 const thClass = "px-6 py-4 text-left font-semibold whitespace-nowrap";
 const topBtnClass = "px-4 py-2 bg-[#3B1CEA] text-white font-semibold rounded-lg hover:bg-[#2D15B8] transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-gray-400";
@@ -145,6 +146,9 @@ async function getRecommendation() {
   console.debug("Getting recommendation data..");
   const response = await fetch(`${apiUrl}/recommendation`);
   const data = await response.json() as Stock;
+  if (data) {
+    recommendedStock.value = data;
+  }
   console.debug("Obtained recommendation: ", data);
   isModalOpen.value = true
 }
@@ -206,5 +210,5 @@ onMounted(async () => {
       </div>
     </div>
   </main>
-  <modal-component v-model="isModalOpen"/>
+  <modal-component v-model="isModalOpen" v-bind:stock="recommendedStock!"/>
 </template>
