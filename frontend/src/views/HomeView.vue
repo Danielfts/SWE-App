@@ -12,15 +12,16 @@ const sortBtnClass = "ml-2 px-2 py-1 text-xs bg-white/20 hover:bg-white/30 round
 const thClass = "px-6 py-4 text-left font-semibold whitespace-nowrap";
 const topBtnClass = "px-4 py-2 bg-[#3B1CEA] text-white font-semibold rounded-lg hover:bg-[#2D15B8] transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-gray-400";
 const columnTitles = [
-  { display: 'Ticker', label: 'Ticker' },
-  { display: 'Target From', label: 'TargetFrom' },
-  { display: 'Target To', label: 'TargetTo' },
-  { display: 'Company', label: 'Company' },
-  { display: 'Action', label: 'Action' },
-  { display: 'Brokerage', label: 'Brokerage' },
-  { display: 'Rating From', label: 'RatingFrom' },
-  { display: 'Rating To', label: 'RatingTo' },
-  { display: 'Time', label: 'Time' }
+  { display: 'Ticker', label: 'Ticker', sortable: true },
+  { display: 'Delta', label: 'Delta', sortable: false },
+  { display: 'Target From', label: 'TargetFrom', sortable: true },
+  { display: 'Target To', label: 'TargetTo', sortable: true },
+  { display: 'Company', label: 'Company', sortable: true },
+  { display: 'Action', label: 'Action', sortable: true },
+  { display: 'Brokerage', label: 'Brokerage', sortable: true },
+  { display: 'Rating From', label: 'RatingFrom', sortable: true },
+  { display: 'Rating To', label: 'RatingTo', sortable: true },
+  { display: 'Time', label: 'Time', sortable: true }
 ] as const;
 
 const formatColombianDateTime = (isoString: string): string => {
@@ -55,13 +56,13 @@ function formatAsMoney(value: number) {
   for (let i = 0; i < oldStr.length; i++) {
     const ch = oldStr[i]
     newStr = ch + newStr
-    counter ++;
+    counter++;
     if (counter === 3 && i < oldStr.length - 1) {
       newStr = ',' + newStr;
       counter = 0;
     }
   }
-  newStr = "$" + newStr + '.'+ decPart;
+  newStr = "$" + newStr + '.' + decPart;
   return newStr;
 }
 
@@ -153,15 +154,19 @@ onMounted(async () => {
         <table class="w-full bg-white shadow-lg rounded-lg overflow-hidden mb-8">
           <thead class="bg-[#3B1CEA] text-white">
             <tr>
-              <th @click="() => onClickSort(column.label)" v-for="column in columnTitles" :key="column.label"
-                :class="thClass">
-                <span>{{ column.display }}</span><button :class="sortBtnClass">{{ getSortChar(column.label) }}</button>
+              <th v-for="column in columnTitles" :key="column.label" :class="thClass">
+                <span>{{ column.display }}</span><button v-if="column.sortable" @click="() => onClickSort(column.label)"
+                  :class="sortBtnClass">{{ getSortChar(column.label) }}</button>
               </th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="stock in stocks" :key="stock.Id" class="border-b hover:bg-gray-50">
               <td class="px-6 py-4">{{ stock.Ticker }}</td>
+              <td class="px-6 py-4">
+                <span v-if="stock.TargetTo > stock.TargetFrom" class="text-green-500">▲</span>
+                <span v-else class="text-red-500">▼</span>
+              </td>
               <td class="px-6 py-4">{{ formatAsMoney(stock.TargetFrom) }}</td>
               <td class="px-6 py-4">{{ formatAsMoney(stock.TargetTo) }}</td>
               <td class="px-6 py-4">{{ stock.Company }}</td>
