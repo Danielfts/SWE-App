@@ -7,9 +7,10 @@ const page = ref<number>(0);
 const sortby = ref<string>("");
 const sortorder = ref<boolean>(true);
 const query = ref<string>("");
+const canContinue = ref<boolean>(false);
 const sortBtnClass = "ml-2 px-2 py-1 text-xs bg-white/20 hover:bg-white/30 rounded transition-colors";
 const thClass = "px-6 py-4 text-left font-semibold whitespace-nowrap";
-const topBtnClass = "px-4 py-2 bg-[#3B1CEA] text-white font-semibold rounded-lg hover:bg-[#2D15B8] transition-colors shadow-md";
+const topBtnClass = "px-4 py-2 bg-[#3B1CEA] text-white font-semibold rounded-lg hover:bg-[#2D15B8] transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-gray-400";
 const columnTitles = [
   { display: 'Ticker', label: 'Ticker' },
   { display: 'Target From', label: 'TargetFrom' },
@@ -49,7 +50,8 @@ const getSortChar = (label: string) => {
 const onSearch = async () => {
   const queryVal = query.value || ""
   console.debug(`Searching for ${queryVal}`);
-  queryStocks(page.value, sortby.value, sortorder.value, queryVal)
+  page.value = 0;
+  updateStocks(page.value, sortby.value, sortorder.value, queryVal)
 }
 
 const onClickSort = async (label: string) => {
@@ -64,23 +66,25 @@ const onClickSort = async (label: string) => {
     sortorder.value = true
   }
   sortby.value = label;
-  await queryStocks(0, label, sortorder.value, query.value)
+  await updateStocks(0, label, sortorder.value, query.value)
 }
 
 const onClickPrev = async () => {
   if (page.value > 0) {
     page.value = page.value - 1;
-    queryStocks(page.value, sortby.value, sortorder.value, query.value);
+    updateStocks(page.value, sortby.value, sortorder.value, query.value);
   }
 }
 
 const onClickNext = async () => {
-  page.value = page.value + 1;
-  queryStocks(page.value, sortby.value, sortorder.value, query.value);
+  await updateStocks(page.value + 1, sortby.value, sortorder.value, query.value);
+  if (stocks.value.length > 0) {
+    page.value = page.value + 1;
+  }
 }
 
-async function queryStocks(offset: number = 0, sortBy: string | null = null, sortOrder: boolean = true, queryStr: string = "") {
-  try {
+async function updateStocks(offset: number = 0, sortBy: string | null = null, sortOrder: boolean = true, queryStr: string = "") {
+  async function requestStocks(offset: number = 0): Promise<Stock[]> {
     const params = new URLSearchParams({
       offset: offset.toString(),
       sortby: sortBy || "",
@@ -90,14 +94,21 @@ async function queryStocks(offset: number = 0, sortBy: string | null = null, sor
     const response = await fetch(`${apiUrl}?${params}`);
     const data = await response.json();
     console.debug(data);
-    stocks.value = data;
+    return data;
+  }
+  try {
+    const data = await Promise.all([requestStocks(offset), requestStocks(offset + 1)]);
+    const [current, next] = data;
+    canContinue.value = next.length > 0;
+    stocks.value = current;
   } catch (error) {
     console.error('Error fetching stocks: ', error);
   }
+
 }
 
 onMounted(async () => {
-  await queryStocks();
+  await updateStocks();
 }
 )
 </script>
@@ -107,9 +118,9 @@ onMounted(async () => {
     <div class="w-full max-w-7xl mx-auto">
       <div class="flex items-center justify-between mb-4">
         <div class="flex gap-2 items-center">
-          <button @click="onClickPrev" :class="topBtnClass">
+          <button @click="onClickPrev" :class="topBtnClass" :disabled="page === 0">
             Prev</button>
-          <button @click="onClickNext" :class="topBtnClass">Next
+          <button @click="onClickNext" :class="topBtnClass" :disabled="!canContinue">Next
           </button>
           <span>Page {{ page }}</span>
         </div>

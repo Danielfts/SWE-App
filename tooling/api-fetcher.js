@@ -96,10 +96,8 @@ async function runCLI() {
       process.exit(1);
     }
     
-    // TODO: Replace with your actual API URL
     const url = 'https://api.karenai.click/swechallenge/list';
     
-    // TODO: Replace with your desired output file path
     const outputFile = './output.json';
     
     console.log(`\nFetching data from: ${url}`);
