@@ -4,6 +4,8 @@ import { ref, onMounted } from 'vue';
 const apiUrl = import.meta.env.VITE_API_URL;
 const stocks = ref<Stock[]>([]);
 const page = ref<number>(0);
+const sortBtnClass = "ml-2 px-2 py-1 text-xs bg-white/20 hover:bg-white/30 rounded transition-colors";
+const thClass = "px-6 py-4 text-left font-semibold";
 
 const formatColombianDateTime = (isoString: string): string => {
   const date = new Date(isoString);
@@ -52,8 +54,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="min-h-[calc(100vh-5rem)] bg-gradient-to-br from-white to-[#81A5F7] pt-12 px-8 pb-12 overflow-x-auto">
-    <div class="w-full max-w-7xl min-w-max mx-auto">
+  <main class="min-h-[calc(100vh-5rem)] bg-gradient-to-br from-white to-[#81A5F7] pt-12 px-8 pb-12">
+    <div class="w-full max-w-7xl mx-auto">
       <div class="flex items-center justify-between mb-4">
         <div class="flex gap-2">
           <button @click="onClickPrev"
@@ -67,18 +69,19 @@ onMounted(async () => {
           class="px-4 py-2 border-2 border-[#3B1CEA] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3B1CEA] shadow-md"
           placeholder="Search...">
       </div>
-      <table class="w-full bg-white shadow-lg rounded-lg overflow-hidden mb-8">
+      <div class="overflow-x-auto">
+        <table class="w-full bg-white shadow-lg rounded-lg overflow-hidden mb-8">
         <thead class="bg-[#3B1CEA] text-white">
           <tr>
-            <th class="px-6 py-4 text-left font-semibold">Ticker</th>
-            <th class="px-6 py-4 text-left font-semibold">Target From</th>
-            <th class="px-6 py-4 text-left font-semibold">Target To</th>
-            <th class="px-6 py-4 text-left font-semibold">Company</th>
-            <th class="px-6 py-4 text-left font-semibold">Action</th>
-            <th class="px-6 py-4 text-left font-semibold">Brokerage</th>
-            <th class="px-6 py-4 text-left font-semibold">Rating From</th>
-            <th class="px-6 py-4 text-left font-semibold">Rating To</th>
-            <th class="px-6 py-4 text-left font-semibold">Time</th>
+            <th :class="thClass">Ticker<button :class="sortBtnClass">-</button> </th>
+            <th :class="thClass">Target From<button :class="sortBtnClass">-</button> </th>
+            <th :class="thClass">Target To<button :class="sortBtnClass">-</button> </th>
+            <th :class="thClass">Company<button :class="sortBtnClass">-</button> </th>
+            <th :class="thClass">Action<button :class="sortBtnClass">-</button> </th>
+            <th :class="thClass">Brokerage<button :class="sortBtnClass">-</button> </th>
+            <th :class="thClass">Rating From<button :class="sortBtnClass">-</button> </th>
+            <th :class="thClass">Rating To<button :class="sortBtnClass">-</button> </th>
+            <th :class="thClass">Time<button :class="sortBtnClass">-</button> </th>
           </tr>
         </thead>
         <tbody>
@@ -95,6 +98,7 @@ onMounted(async () => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </main>
 </template>
