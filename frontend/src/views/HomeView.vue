@@ -5,6 +5,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const stocks = ref<Stock[]>([]);
 const page = ref<number>(0);
 const sortby = ref<string>("");
+const sortorder = ref<boolean>(true);
 const sortBtnClass = "ml-2 px-2 py-1 text-xs bg-white/20 hover:bg-white/30 rounded transition-colors";
 const thClass = "px-6 py-4 text-left font-semibold whitespace-nowrap";
 const columnTitles = [
@@ -39,27 +40,33 @@ const onClickSort = async (label: string) => {
   console.debug(`Toggle sort by ${column.label}`);
   stocks.value = [];
   page.value = 0;
+  if (sortby.value === label) {
+    sortorder.value = !sortorder.value
+  } else {
+    sortorder.value = true
+  }
   sortby.value = label;
-  await queryStocks(0, label)
+  await queryStocks(0, label, sortorder.value)
 }
 
 const onClickPrev = async () => {
   if (page.value > 0) {
     page.value = page.value - 1;
-    queryStocks(page.value, sortby.value);
+    queryStocks(page.value, sortby.value, sortorder.value);
   }
 }
 
 const onClickNext = async () => {
   page.value = page.value + 1;
-  queryStocks(page.value, sortby.value);
+  queryStocks(page.value, sortby.value, sortorder.value);
 }
 
-async function queryStocks(offset: number = 0, sortBy: string | null = null) {
+async function queryStocks(offset: number = 0, sortBy: string | null = null, sortOrder: boolean = true) {
   try {
     const params = new URLSearchParams({
       offset: offset.toString(),
-      sortby: sortBy || ""
+      sortby: sortBy || "",
+      asc: sortOrder? 'true': 'false'
     });
     const response = await fetch(`${apiUrl}?${params}`);
     const data = await response.json();

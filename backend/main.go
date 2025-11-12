@@ -48,13 +48,19 @@ func initDb() *gorm.DB {
 	return db
 }
 
-func getFirstStocks(db *gorm.DB, offset int, sortby *string) ([]domain.Stock, error) {
+func getFirstStocks(db *gorm.DB, offset int, sortby *string, asc bool) ([]domain.Stock, error) {
 	var stocks []domain.Stock
 	orderBy := "ticker"
 	if sortby != nil && *sortby != "" {
 		orderBy = *sortby
 	}
-	result := db.Limit(5).Order(orderBy + " ASC").Offset(offset).Find(&stocks)
+	sortOrder := ""
+	if asc {
+		sortOrder = " ASC"
+	} else {
+		sortOrder = " DESC"
+	}
+	result := db.Limit(5).Order(orderBy + sortOrder).Offset(offset).Find(&stocks)
 	return stocks, result.Error
 }
 
@@ -74,17 +80,19 @@ func queryStocks(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	q := r.URL.Query()
 	offsetStr := q.Get("offset")
 	sortByStr := q.Get("sortby")
+	asc := q.Get("asc") == "true"
 	sortBy := StockColumnMap[sortByStr]
 	offset := 0
 	if len(offsetStr) > 0 {
 		var err error
 		offset, err = strconv.Atoi(offsetStr)
+		offset = offset * 5
 		if err != nil {
 			fmt.Println("Invalid offset:", err)
 			offset = 0
 		}
 	}
-	stocks, err := getFirstStocks(db, offset, &sortBy)
+	stocks, err := getFirstStocks(db, offset, &sortBy, asc)
 	if err != nil {
 		log.Fatalf("Error getting stocks %v", err)
 	} else {
