@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { Stock } from '@/domain/stock';
+import { formatStock } from '@/utils/format-utils';
+
 const props = defineProps({
   modelValue: { type: Boolean, required: true },
   stock: {type: Object, required: true}
@@ -14,9 +17,9 @@ const close = () => emit('update:modelValue', false)
         <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
             <h1 class="text-4xl font-bold">Recommended Stock of the day</h1>
             <div class="mb-4"></div>
-            <div v-for="k in Object.keys(stock)" class="grid grid-cols-2">
+            <div v-for="[k,v] in Object.entries(formatStock(stock as Stock))" class="grid grid-cols-2">
                 <strong>{{ k }}</strong>
-                <span>{{ stock[k] }}</span>
+                <span>{{ v }}</span>
             </div>
            
             <button @click="close" class="mt-6 px-6 py-2 bg-[#3B1CEA] text-white font-semibold rounded-lg hover:bg-[#2D15B8] transition-colors shadow-md">Close</button>
