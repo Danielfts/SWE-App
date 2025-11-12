@@ -4,8 +4,20 @@ import { ref, onMounted } from 'vue';
 const apiUrl = import.meta.env.VITE_API_URL;
 const stocks = ref<Stock[]>([]);
 const page = ref<number>(0);
+const sortby = ref<string>("");
 const sortBtnClass = "ml-2 px-2 py-1 text-xs bg-white/20 hover:bg-white/30 rounded transition-colors";
-const thClass = "px-6 py-4 text-left font-semibold";
+const thClass = "px-6 py-4 text-left font-semibold whitespace-nowrap";
+const columnTitles = [
+  { display: 'Ticker', label: 'Ticker' },
+  { display: 'Target From', label: 'TargetFrom' },
+  { display: 'Target To', label: 'TargetTo' },
+  { display: 'Company', label: 'Company' },
+  { display: 'Action', label: 'Action' },
+  { display: 'Brokerage', label: 'Brokerage' },
+  { display: 'Rating From', label: 'RatingFrom' },
+  { display: 'Rating To', label: 'RatingTo' },
+  { display: 'Time', label: 'Time' }
+] as const;
 
 const formatColombianDateTime = (isoString: string): string => {
   const date = new Date(isoString);
@@ -21,22 +33,33 @@ const formatColombianDateTime = (isoString: string): string => {
   });
 };
 
+const onClickSort = async (label: string) => {
+  const column = columnTitles.find(col => col.label === label);
+  if (!column) return;
+  console.debug(`Toggle sort by ${column.label}`);
+  stocks.value = [];
+  page.value = 0;
+  sortby.value = label;
+  await queryStocks(0, label)
+}
+
 const onClickPrev = async () => {
   if (page.value > 0) {
     page.value = page.value - 1;
-    queryStocks(page.value);
+    queryStocks(page.value, sortby.value);
   }
 }
 
 const onClickNext = async () => {
   page.value = page.value + 1;
-  queryStocks(page.value);
+  queryStocks(page.value, sortby.value);
 }
 
-async function queryStocks(offset: number = 0) {
+async function queryStocks(offset: number = 0, sortBy: string | null = null) {
   try {
     const params = new URLSearchParams({
-      offset : offset.toString()
+      offset: offset.toString(),
+      sortby: sortBy || ""
     });
     const response = await fetch(`${apiUrl}?${params}`);
     const data = await response.json();
@@ -57,13 +80,14 @@ onMounted(async () => {
   <main class="min-h-[calc(100vh-5rem)] bg-gradient-to-br from-white to-[#81A5F7] pt-12 px-8 pb-12">
     <div class="w-full max-w-7xl mx-auto">
       <div class="flex items-center justify-between mb-4">
-        <div class="flex gap-2">
+        <div class="flex gap-2 items-center">
           <button @click="onClickPrev"
             class="px-4 py-2 bg-[#3B1CEA] text-white font-semibold rounded-lg hover:bg-[#2D15B8] transition-colors shadow-md">
-            < Prev</button>
-              <button @click="onClickNext"
-                class="px-4 py-2 bg-[#3B1CEA] text-white font-semibold rounded-lg hover:bg-[#2D15B8] transition-colors shadow-md">Next
-                > </button>
+            Prev</button>
+          <button @click="onClickNext"
+            class="px-4 py-2 bg-[#3B1CEA] text-white font-semibold rounded-lg hover:bg-[#2D15B8] transition-colors shadow-md">Next
+          </button>
+          <span>Page {{ page }}</span>
         </div>
         <input
           class="px-4 py-2 border-2 border-[#3B1CEA] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3B1CEA] shadow-md"
@@ -71,33 +95,28 @@ onMounted(async () => {
       </div>
       <div class="overflow-x-auto">
         <table class="w-full bg-white shadow-lg rounded-lg overflow-hidden mb-8">
-        <thead class="bg-[#3B1CEA] text-white">
-          <tr>
-            <th :class="thClass">Ticker<button :class="sortBtnClass">-</button> </th>
-            <th :class="thClass">Target From<button :class="sortBtnClass">-</button> </th>
-            <th :class="thClass">Target To<button :class="sortBtnClass">-</button> </th>
-            <th :class="thClass">Company<button :class="sortBtnClass">-</button> </th>
-            <th :class="thClass">Action<button :class="sortBtnClass">-</button> </th>
-            <th :class="thClass">Brokerage<button :class="sortBtnClass">-</button> </th>
-            <th :class="thClass">Rating From<button :class="sortBtnClass">-</button> </th>
-            <th :class="thClass">Rating To<button :class="sortBtnClass">-</button> </th>
-            <th :class="thClass">Time<button :class="sortBtnClass">-</button> </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="stock in stocks" :key="stock.Id" class="border-b hover:bg-gray-50">
-            <td class="px-6 py-4">{{ stock.Ticker }}</td>
-            <td class="px-6 py-4">{{ stock.TargetFrom }}</td>
-            <td class="px-6 py-4">{{ stock.TargetTo }}</td>
-            <td class="px-6 py-4">{{ stock.Company }}</td>
-            <td class="px-6 py-4">{{ stock.Action }}</td>
-            <td class="px-6 py-4">{{ stock.Brokerage }}</td>
-            <td class="px-6 py-4">{{ stock.RatingFrom }}</td>
-            <td class="px-6 py-4">{{ stock.RatingTo }}</td>
-            <td class="px-6 py-4">{{ formatColombianDateTime(stock.Time) }}</td>
-          </tr>
-        </tbody>
-      </table>
+          <thead class="bg-[#3B1CEA] text-white">
+            <tr>
+              <th @click="() => onClickSort(column.label)" v-for="column in columnTitles" :key="column.label"
+                :class="thClass">
+                <span>{{ column.display }}</span><button :class="sortBtnClass">-</button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="stock in stocks" :key="stock.Id" class="border-b hover:bg-gray-50">
+              <td class="px-6 py-4">{{ stock.Ticker }}</td>
+              <td class="px-6 py-4">{{ stock.TargetFrom }}</td>
+              <td class="px-6 py-4">{{ stock.TargetTo }}</td>
+              <td class="px-6 py-4">{{ stock.Company }}</td>
+              <td class="px-6 py-4">{{ stock.Action }}</td>
+              <td class="px-6 py-4">{{ stock.Brokerage }}</td>
+              <td class="px-6 py-4">{{ stock.RatingFrom }}</td>
+              <td class="px-6 py-4">{{ stock.RatingTo }}</td>
+              <td class="px-6 py-4">{{ formatColombianDateTime(stock.Time) }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </main>
