@@ -1,4 +1,33 @@
 <script setup lang="ts">
+import type { Stock } from '@/domain/stock';
+import {ref, onMounted} from 'vue';
+const apiUrl = import.meta.env.VITE_API_URL;
+const stocks = ref<Stock[]>([])
+
+const formatColombianDateTime = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleString('es-CO', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+};
+
+onMounted(async () => {
+  try {
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    console.debug(data);
+    stocks.value = data;
+  } catch (error) {
+    console.error('Error fetching stocks: ', error);
+  }
+})
 </script>
 
 <template>
@@ -22,27 +51,16 @@
         </tr>
       </thead>
       <tbody>
-        <tr class="border-b hover:bg-gray-50">
-          <td class="px-6 py-4">AKBA</td>
-          <td class="px-6 py-4">$8.00</td>
-          <td class="px-6 py-4">$6.00</td>
-          <td class="px-6 py-4">Akebia Therapeutics</td>
-          <td class="px-6 py-4">target lowered by</td>
-          <td class="px-6 py-4">Goldman Sachs</td>
-          <td class="px-6 py-4">Buy</td>
-          <td class="px-6 py-4">Buy</td>
-          <td class="px-6 py-4">2025-10-31</td>
-        </tr>
-        <tr class="border-b hover:bg-gray-50">
-          <td class="px-6 py-4">TSLA</td>
-          <td class="px-6 py-4">$250.00</td>
-          <td class="px-6 py-4">$300.00</td>
-          <td class="px-6 py-4">Tesla Inc</td>
-          <td class="px-6 py-4">target raised by</td>
-          <td class="px-6 py-4">Morgan Stanley</td>
-          <td class="px-6 py-4">Hold</td>
-          <td class="px-6 py-4">Buy</td>
-          <td class="px-6 py-4">2025-11-10</td>
+        <tr v-for="stock in stocks" :key="stock.Id" class="border-b hover:bg-gray-50">
+          <td class="px-6 py-4">{{ stock.Ticker }}</td>
+          <td class="px-6 py-4">{{ stock.TargetFrom }}</td>
+          <td class="px-6 py-4">{{ stock.TargetTo }}</td>
+          <td class="px-6 py-4">{{ stock.Company }}</td>
+          <td class="px-6 py-4">{{ stock.Action }}</td>
+          <td class="px-6 py-4">{{ stock.Brokerage }}</td>
+          <td class="px-6 py-4">{{ stock.RatingFrom }}</td>
+          <td class="px-6 py-4">{{ stock.RatingTo }}</td>
+          <td class="px-6 py-4">{{ formatColombianDateTime(stock.Time) }}</td>
         </tr>
       </tbody>
     </table>
