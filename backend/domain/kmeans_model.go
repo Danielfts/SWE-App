@@ -10,8 +10,8 @@ type KMeansModel struct {
 
 type KMeansFeatures struct {
 	TargetDelta      float64
-	HasBrokerage     int
+	HasBrokerage     float64
 	ActionScore      float64
 	RatingDeltaScore float64
-	TimeDelta        int
+	TimeDelta        float64
 }

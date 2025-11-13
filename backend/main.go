@@ -124,8 +124,17 @@ func getCentroids() domain.KMeansModel {
 	return model
 }
 
-func getStockFeatures(stock *domain.Stock) (domain.KMeansFeatures, error) {
+func normalize(feature, mean, std float64) float64 {
+	if std == 0 {
+		return 0
+	}
+	return (feature - mean) / std
+}
+
+func getStockFeatures(stock *domain.Stock, model *domain.KMeansModel) (domain.KMeansFeatures, error) {
 	// Score maps
+	means := model.Means
+	stds := model.Stds
 	var actionMapping = map[string]int{
 		"upgrades":              1,
 		"upgraded by":           1,
@@ -223,18 +232,18 @@ func getStockFeatures(stock *domain.Stock) (domain.KMeansFeatures, error) {
 	delta := now.Sub(timestamp).Hours() / 24
 
 	features := domain.KMeansFeatures{
-		TargetDelta:      targetDelta,
-		HasBrokerage:     hasBrokerage,
-		ActionScore:      float64(actionScore),
-		RatingDeltaScore: ratingDelta,
-		TimeDelta:        int(math.Round(delta)),
+		TargetDelta:      normalize(targetDelta, means[0], stds[0]),
+		HasBrokerage:     normalize(float64(hasBrokerage), means[1], stds[1]),
+		ActionScore:      normalize(float64(actionScore), means[2], stds[2]),
+		RatingDeltaScore: normalize(ratingDelta, means[3], stds[3]),
+		TimeDelta:        normalize(math.Round(delta), means[4], stds[4]),
 	}
 	fmt.Printf("Kmeans features: %+v", features)
 	return features, nil
 }
 
 func recommendStock(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-	getCentroids()
+	model := getCentroids()
 	var stocks []domain.Stock
 	result := db.Limit(1).Find(&stocks)
 	if result.Error != nil {
@@ -247,7 +256,11 @@ func recommendStock(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 		return
 	}
 	stock := stocks[0]
-	getStockFeatures(&stock)
+	_, err := getStockFeatures(&stock, &model)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	json.NewEncoder(w).Encode(stock)
 }
 
