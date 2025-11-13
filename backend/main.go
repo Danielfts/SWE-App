@@ -242,26 +242,62 @@ func getStockFeatures(stock *domain.Stock, model *domain.KMeansModel) (domain.KM
 	return features, nil
 }
 
-func recommendStock(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-	model := getCentroids()
-	var stocks []domain.Stock
-	result := db.Limit(1).Find(&stocks)
-	if result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
-		return
+func euclideanDistance(a, b []float64) float64 {
+	if len(a) != len(b) {
+		panic("vectors must have same length")
 	}
 
-	if len(stocks) != 1 {
-		http.Error(w, fmt.Sprintf("expected 1 stock, got %d", len(stocks)), http.StatusNotFound)
-		return
+	sum := 0.0
+	for i := range a {
+		diff := a[i] - b[i]
+		sum += diff * diff
 	}
-	stock := stocks[0]
-	_, err := getStockFeatures(&stock, &model)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	return math.Sqrt(sum)
+}
+
+func recommendStock(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+	model := getCentroids()
+	clusterTargetAvgs := model.AvgTargetDeltas
+	var bestClusterIndex int = 0
+	maxClusterAvg := clusterTargetAvgs[0]
+	for i, v := range clusterTargetAvgs {
+		if v > maxClusterAvg {
+			maxClusterAvg = v
+			bestClusterIndex = i
+		}
 	}
-	json.NewEncoder(w).Encode(stock)
+	bestClusterCentroid := model.Centroids[bestClusterIndex]
+	fmt.Printf("bestClusterIndex=%d maxClusterAvg=%f\n", bestClusterIndex, maxClusterAvg)
+	var recommendedStock domain.Stock
+	dbPage := 0
+
+	minDistance := math.Inf(1)
+	for {
+		var stocks []domain.Stock
+		result := db.Limit(100).Offset(dbPage * 100).Find(&stocks)
+		if result.Error != nil {
+			http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+			return
+		}
+		if len(stocks) == 0 {
+			break
+		}
+		for _, stock := range stocks {
+			features, err := getStockFeatures(&stock, &model)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			euclideanDist := euclideanDistance(features.FeaturesToSlice(), bestClusterCentroid)
+			if euclideanDist < minDistance {
+				minDistance = euclideanDist
+				recommendedStock = stock
+			}
+		}
+		dbPage++
+	}
+	json.NewEncoder(w).Encode(recommendedStock)
 }
 
 func main() {

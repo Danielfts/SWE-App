@@ -16,3 +16,13 @@ type KMeansFeatures struct {
 	RatingDeltaScore float64
 	TimeDelta        float64
 }
+
+func (f KMeansFeatures) FeaturesToSlice() []float64 {
+	return []float64{
+		f.TargetDelta,
+		f.HasBrokerage,
+		f.ActionScore,
+		f.RatingDeltaScore,
+		f.TimeDelta,
+	}
+}
