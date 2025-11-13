@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"stocks/domain"
 
@@ -107,7 +109,132 @@ func queryStocks(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	json.NewEncoder(w).Encode(stocks)
 }
 
+func getCentroids() domain.KMeansModel {
+	file, err := os.Open(os.Getenv("CENTROIDS_PATH"))
+	if err != nil {
+		log.Fatalf("Error getting centroids file")
+	}
+	defer file.Close()
+
+	var model domain.KMeansModel
+	if err := json.NewDecoder(file).Decode(&model); err != nil {
+		log.Fatalf("Error decoding JSON")
+	}
+	fmt.Printf("Obtained centroids %v\n", model)
+	return model
+}
+
+func getStockFeatures(stock *domain.Stock) (domain.KMeansFeatures, error) {
+	// Score maps
+	var actionMapping = map[string]int{
+		"upgrades":              1,
+		"upgraded by":           1,
+		"target raised by":      1,
+		"downgrades":            -1,
+		"downgraded by":         -1,
+		"target lowered by":     -1,
+		"maintains":             0,
+		"initiates coverage on": 0,
+		"initiates":             0,
+		"initiated by":          0,
+		"reiterates":            0,
+		"reiterated by":         0,
+		"target set by":         0,
+		"":                      0,
+	}
+	var ratingMapping = map[string]float64{
+		// Most bullish (1.0)
+		"strong-buy": 1.0,
+		"strong buy": 1.0,
+
+		// Very bullish (0.75–0.9)
+		"buy":               0.75,
+		"speculative buy":   0.75,
+		"outperform":        0.75,
+		"outperformer":      0.75,
+		"overweight":        0.75,
+		"accumulate":        0.75,
+		"market outperform": 0.75,
+		"sector outperform": 0.75,
+
+		// Slightly bullish (0.25–0.5)
+		"positive": 0.5,
+
+		// Neutral (0)
+		"hold":             0,
+		"neutral":          0,
+		"market perform":   0,
+		"equal weight":     0,
+		"equal-weight":     0,
+		"in-line":          0,
+		"sector perform":   0,
+		"sector performer": 0,
+		"sector weight":    0,
+		"peer perform":     0,
+
+		// Slightly bearish (-0.25 to -0.5)
+		"negative": -0.5,
+
+		// Very bearish (-0.75 to -0.9)
+		"underperform":        -0.75,
+		"underweight":         -0.75,
+		"reduce":              -0.75,
+		"sector underperform": -0.75,
+
+		// Most bearish (-1.0)
+		"sell":        -1.0,
+		"strong sell": -1.0,
+
+		// Empty/missing
+		"": 0,
+	}
+
+	// Get target delta
+	targetToNum, err := strconv.ParseFloat(stock.TargetTo, 64)
+	if err != nil {
+		return domain.KMeansFeatures{}, err
+	}
+	targetFromNum, err := strconv.ParseFloat(stock.TargetFrom, 64)
+	if err != nil {
+		return domain.KMeansFeatures{}, err
+	}
+	var targetDelta float64 = ((targetToNum - targetFromNum) / targetFromNum) * 100
+	// Get Has brokerage
+	var hasBrokerage int
+	if len(stock.Brokerage) > 0 {
+		hasBrokerage = 1
+	} else {
+		hasBrokerage = 0
+	}
+
+	// Get Action Score
+	var actionScore int = actionMapping[stock.Action]
+
+	// Get Rating Score Delta
+	ratingFromScore := ratingMapping[stock.RatingFrom]
+	ratingToScore := ratingMapping[stock.RatingTo]
+	ratingDelta := ratingToScore - ratingFromScore
+	// Get Time delta
+	timestamp, err := time.Parse(time.RFC3339, stock.Time)
+	if err != nil {
+		return domain.KMeansFeatures{}, err
+	}
+	now := time.Now()
+	delta := now.Sub(timestamp).Hours() / 24
+
+	features := domain.KMeansFeatures{
+		TargetDelta:      targetDelta,
+		HasBrokerage:     hasBrokerage,
+		ActionScore:      float64(actionScore),
+		RatingDeltaScore: ratingDelta,
+		TimeDelta:        int(math.Round(delta)),
+	}
+	fmt.Printf("Kmeans features: %+v", features)
+	return features, nil
+}
+
 func recommendStock(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+	getCentroids()
 	var stocks []domain.Stock
 	result := db.Limit(1).Find(&stocks)
 	if result.Error != nil {
@@ -119,7 +246,9 @@ func recommendStock(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 		http.Error(w, fmt.Sprintf("expected 1 stock, got %d", len(stocks)), http.StatusNotFound)
 		return
 	}
-	json.NewEncoder(w).Encode(stocks[0])
+	stock := stocks[0]
+	getStockFeatures(&stock)
+	json.NewEncoder(w).Encode(stock)
 }
 
 func main() {
